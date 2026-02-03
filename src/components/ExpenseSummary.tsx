@@ -7,7 +7,7 @@ interface ExpenseSummaryProps {
 }
 
 export default function ExpenseSummary({ expenses }: ExpenseSummaryProps) {
-  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const total = expenses.reduce((sum, e) => sum - e.amount, 0);
 
   const byCategory = expenses.reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount;
