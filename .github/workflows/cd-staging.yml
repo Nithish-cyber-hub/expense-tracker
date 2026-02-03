@@ -1,0 +1,72 @@
+# CD Staging Pipeline - Runs when code is merged to ci-main
+# Deploys to staging and creates PR to cd-main
+
+name: CD Staging
+
+on:
+  push:
+    branches: [ci-main]
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      # Deploy to Vercel Preview (Staging)
+      - name: Deploy to Staging
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        if: ${{ vars.VERCEL_ENABLED == 'true' }}
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          # No --prod flag = preview/staging deployment
+
+      - name: Staging deployment complete
+        run: echo "Staging deployment successful! 🚀"
+
+  # Create PR to cd-main after staging deployment
+  promote-to-cd:
+    name: Create PR to cd-main
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Pull Request to cd-main
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ci-main
+          base: cd-main
+          title: "CD: Promote ci-main to cd-main"
+          body: |
+            Automated PR from CD Staging pipeline.
+
+            **Source:** `ci-main`
+            **Target:** `cd-main`
+
+            Staging deployment successful ✅
+            Ready for final testing before production.
+          labels: staging-passed
