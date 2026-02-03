@@ -5,6 +5,10 @@ on:
   push:
     branches: [ci-main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   build:
     name: Build Staging

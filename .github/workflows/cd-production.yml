@@ -5,6 +5,10 @@ on:
   push:
     branches: [cd-main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   build:
     name: Build Production

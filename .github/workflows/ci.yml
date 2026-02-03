@@ -10,6 +10,10 @@ on:
   pull_request:
     branches: [ci-main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   build-and-test:
     name: Build & Test
