@@ -1,6 +1,4 @@
-# CI Pipeline - Runs on feature branches and PRs to ci-main
-# Tests code before merging to ci-main
-
+# CI Pipeline - Runs on feature branches only
 name: CI
 
 on:
@@ -8,6 +6,7 @@ on:
     branches-ignore:
       - main
       - cd-main
+      - ci-main
   pull_request:
     branches: [ci-main]
 
@@ -15,70 +14,43 @@ jobs:
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint code
-        run: npm run lint
-
-      - name: Build application
-        run: npm run build
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
 
   security:
     name: Security Audit
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run security audit
-        run: npm audit --audit-level=high
+      - run: npm ci
+      - run: npm audit --audit-level=high
         continue-on-error: true
 
-  # Auto-create PR to ci-main when CI passes on feature branches
-  create-pr-to-ci:
+  create-pr:
     name: Create PR to ci-main
     needs: [build-and-test, security]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/heads/ci-main')
-
+    if: github.event_name == 'push'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Create Pull Request to ci-main
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
-          base: ci-main
-          title: "CI: Merge ${{ github.ref_name }} into ci-main"
-          body: |
-            Automated PR from CI pipeline.
-
-            **Branch:** `${{ github.ref_name }}`
-            **Commit:** ${{ github.sha }}
-
-            CI tests passed ✅
-          labels: ci-passed
+      - uses: actions/checkout@v4
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh pr list --base ci-main --head ${{ github.ref_name }} --json number -q '.[0].number')
+          if [ -z "$EXISTING" ]; then
+            gh pr create --base ci-main --head ${{ github.ref_name }} \
+              --title "CI: ${{ github.ref_name }}" \
+              --body "CI passed ✅"
+          fi

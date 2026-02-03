@@ -1,6 +1,4 @@
-# CD Production Pipeline - Runs when code is merged to cd-main
-# Creates PR to main (production)
-
+# CD Production - Runs on cd-main only
 name: CD Production
 
 on:
@@ -8,56 +6,31 @@ on:
     branches: [cd-main]
 
 jobs:
-  prepare-production:
-    name: Prepare for Production
+  build:
+    name: Build Production
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+      - run: npm ci
+      - run: npm run build
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build application
-        run: npm run build
-
-      - name: Final checks passed
-        run: echo "Ready for production deployment! 🎯"
-
-  # Create PR to main (production)
-  promote-to-production:
-    name: Create PR to main (Production)
-    needs: prepare-production
+  create-pr:
+    name: Create PR to main
+    needs: build
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Create Pull Request to main
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: cd-main
-          base: main
-          title: "PROD: Deploy cd-main to Production"
-          body: |
-            Automated PR from CD Production pipeline.
-
-            **Source:** `cd-main`
-            **Target:** `main` (Production)
-
-            ⚠️ **This will deploy to PRODUCTION**
-
-            All tests passed ✅
-            Staging verified ✅
-          labels: production-ready
+      - uses: actions/checkout@v4
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh pr list --base main --head cd-main --json number -q '.[0].number')
+          if [ -z "$EXISTING" ]; then
+            gh pr create --base main --head cd-main \
+              --title "PROD: Deploy to Production" \
+              --body "Ready for production ✅"
+          fi
