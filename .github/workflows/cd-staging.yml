@@ -28,13 +28,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Create PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Check if there are differences
+          git fetch origin cd-main
+          DIFF=$(git rev-list --count origin/cd-main..HEAD)
+          if [ "$DIFF" -eq 0 ]; then
+            echo "No new commits to PR"
+            exit 0
+          fi
+
           EXISTING=$(gh pr list --base cd-main --head ci-main --json number -q '.[0].number')
           if [ -z "$EXISTING" ]; then
             gh pr create --base cd-main --head ci-main \
               --title "CD: Promote to cd-main" \
               --body "Staging passed ✅"
+          else
+            echo "PR #$EXISTING already exists"
           fi
