@@ -44,20 +44,27 @@ jobs:
           fetch-depth: 0
 
       - name: Create Pull Request to main
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: cd-main
-          base: main
-          title: "PROD: Deploy cd-main to Production"
-          body: |
-            Automated PR from CD Production pipeline.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --base main --head cd-main --json number --jq '.[0].number')
 
-            **Source:** `cd-main`
-            **Target:** `main` (Production)
+          if [ -z "$EXISTING_PR" ]; then
+            gh pr create \
+              --base main \
+              --head cd-main \
+              --title "PROD: Deploy to Production" \
+              --body "Automated PR from CD Production pipeline.
 
-            ⚠️ **This will deploy to PRODUCTION**
+**Source:** \`cd-main\`
+**Target:** \`main\` (Production)
 
-            All tests passed ✅
-            Staging verified ✅
-          labels: production-ready
+⚠️ **This will deploy to PRODUCTION**
+
+All tests passed ✅
+Staging verified ✅"
+            echo "PR created successfully"
+          else
+            echo "PR #$EXISTING_PR already exists"
+          fi

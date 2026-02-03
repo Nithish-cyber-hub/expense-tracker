@@ -28,19 +28,8 @@ jobs:
       - name: Build application
         run: npm run build
 
-      # Deploy to Vercel Preview (Staging)
-      - name: Deploy to Staging
-        id: deploy
-        uses: amondnet/vercel-action@v25
-        if: ${{ vars.VERCEL_ENABLED == 'true' }}
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          # No --prod flag = preview/staging deployment
-
       - name: Staging deployment complete
-        run: echo "Staging deployment successful! 🚀"
+        run: echo "Staging build successful! 🚀"
 
   # Create PR to cd-main after staging deployment
   promote-to-cd:
@@ -55,18 +44,25 @@ jobs:
           fetch-depth: 0
 
       - name: Create Pull Request to cd-main
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ci-main
-          base: cd-main
-          title: "CD: Promote ci-main to cd-main"
-          body: |
-            Automated PR from CD Staging pipeline.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --base cd-main --head ci-main --json number --jq '.[0].number')
 
-            **Source:** `ci-main`
-            **Target:** `cd-main`
+          if [ -z "$EXISTING_PR" ]; then
+            gh pr create \
+              --base cd-main \
+              --head ci-main \
+              --title "CD: Promote ci-main to cd-main" \
+              --body "Automated PR from CD Staging pipeline.
 
-            Staging deployment successful ✅
-            Ready for final testing before production.
-          labels: staging-passed
+**Source:** \`ci-main\`
+**Target:** \`cd-main\`
+
+Staging build successful ✅
+Ready for final testing before production."
+            echo "PR created successfully"
+          else
+            echo "PR #$EXISTING_PR already exists"
+          fi
