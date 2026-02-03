@@ -8,6 +8,7 @@ on:
     branches-ignore:
       - main
       - cd-main
+      - ci-main
   pull_request:
     branches: [ci-main]
 
@@ -61,24 +62,31 @@ jobs:
     name: Create PR to ci-main
     needs: [build-and-test, security]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/heads/ci-main')
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Create Pull Request to ci-main
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
-          base: ci-main
-          title: "CI: Merge ${{ github.ref_name }} into ci-main"
-          body: |
-            Automated PR from CI pipeline.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --base ci-main --head ${{ github.ref_name }} --json number --jq '.[0].number')
 
-            **Branch:** `${{ github.ref_name }}`
-            **Commit:** ${{ github.sha }}
+          if [ -z "$EXISTING_PR" ]; then
+            gh pr create \
+              --base ci-main \
+              --head ${{ github.ref_name }} \
+              --title "CI: Merge ${{ github.ref_name }} into ci-main" \
+              --body "Automated PR from CI pipeline.
 
-            CI tests passed ✅
-          labels: ci-passed
+**Branch:** \`${{ github.ref_name }}\`
+**Commit:** ${{ github.sha }}
+
+CI tests passed ✅"
+            echo "PR created successfully"
+          else
+            echo "PR #$EXISTING_PR already exists"
+          fi
