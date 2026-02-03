@@ -1,0 +1,50 @@
+# CD Pipeline - Deploy to production
+# This workflow deploys to Vercel when code is pushed to main
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # Allow manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      # Deploy to Vercel
+      # To use this, you need to:
+      # 1. Create a Vercel account at vercel.com
+      # 2. Install Vercel CLI: npm i -g vercel
+      # 3. Run 'vercel' in project to link it
+      # 4. Get your tokens from Vercel dashboard
+      # 5. Add these secrets in GitHub repo settings:
+      #    - VERCEL_TOKEN
+      #    - VERCEL_ORG_ID
+      #    - VERCEL_PROJECT_ID
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        if: ${{ vars.VERCEL_ENABLED == 'true' }}
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'

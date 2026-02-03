@@ -1,0 +1,71 @@
+# CI Pipeline - Runs on every push and pull request
+# This workflow builds and tests the application
+
+name: CI
+
+# When to run this workflow
+on:
+  push:
+    branches: [main]      # Run on pushes to main
+  pull_request:
+    branches: [main]      # Run on PRs targeting main
+
+jobs:
+  # Job 1: Build and Test
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest    # Use Ubuntu runner
+
+    steps:
+      # Step 1: Checkout code from repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'          # Cache npm dependencies for faster builds
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci              # 'ci' is faster and stricter than 'npm install'
+
+      # Step 4: Run linter to check code quality
+      - name: Lint code
+        run: npm run lint
+
+      # Step 5: Build the application
+      - name: Build application
+        run: npm run build
+
+      # Step 6: Upload build artifacts (optional - for debugging)
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next/
+          retention-days: 7
+
+  # Job 2: Security Check (runs parallel to build)
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: npm audit --audit-level=high
+        continue-on-error: true   # Don't fail build on audit warnings
