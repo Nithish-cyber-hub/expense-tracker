@@ -24,3 +24,4 @@ export const CATEGORIES = [
   'Travel',
   'Other',
 ] as const;
+// Budget feature placeholder
