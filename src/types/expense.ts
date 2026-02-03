@@ -24,3 +24,29 @@ export const CATEGORIES = [
   'Travel',
   'Other',
 ] as const;
+
+export interface Income {
+  id: string;
+  description: string;
+  amount: number;
+  source: string;
+  date: string;
+  createdAt: string;
+}
+
+export interface IncomeFormData {
+  description: string;
+  amount: number;
+  source: string;
+  date: string;
+}
+
+export const INCOME_SOURCES = [
+  'Salary',
+  'Freelance',
+  'Investments',
+  'Business',
+  'Rental',
+  'Gifts',
+  'Other',
+] as const;
