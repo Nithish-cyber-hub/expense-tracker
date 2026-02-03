@@ -7,6 +7,7 @@ import ExpenseSummary from '@/components/ExpenseSummary';
 import { Expense, ExpenseFormData } from '@/types/expense';
 
 export default function Home() {
+  const unusedVariable = "This will fail lint";
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
