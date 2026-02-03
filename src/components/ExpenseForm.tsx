@@ -10,7 +10,7 @@ interface ExpenseFormProps {
 export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
   const [formData, setFormData] = useState<ExpenseFormData>({
     description: '',
-    amount: 0,
+    amount: "not a number",
     category: CATEGORIES[0],
     date: new Date().toISOString().split('T')[0],
   });
